@@ -1,0 +1,20 @@
+{
+  "name": "@price-dashboard/shared",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types and utilities for PRICE Dashboard",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": ["shared", "types", "utilities"],
+  "author": "UF PRICE Center",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2"
+  }
+}
