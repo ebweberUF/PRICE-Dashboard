@@ -17,7 +17,7 @@ Based on the intranet deployment (UF network only with SSO authentication), the 
 
 #### ✅ Implemented (November 22, 2025):
 - **System Updates**: Ubuntu 24.04 LTS fully updated
-- **UFW Firewall**: Active with rules for SSH (22), Zabbix (10050), Deep Security (4118), HTTP (80), HTTPS (443)
+- **UFW Firewall**: Active with rules for SSH (22), Zabbix (10050), Deep Security (4118), HTTP (80), HTTPS (443), ports 3000-3001
 - **Automatic Security Updates**: Enabled via unattended-upgrades
 - **Existing IT Security**: Zabbix monitoring + Trend Micro Deep Security already in place
 - **Application User**: `price-app` user created with home directory and application folders
@@ -27,6 +27,14 @@ Based on the intranet deployment (UF network only with SSO authentication), the 
 - **PostgreSQL**: v17.7 installed and running
 - **Database**: `price_production` database created with UTF8 encoding
 - **Database User**: `price_app` user created with appropriate permissions
+
+#### ✅ Implemented (December 2025):
+- **Frontend**: Next.js 15 with Tailwind Admin template deployed
+- **Project Location**: `/home/price-app/price-dashboard`
+- **Theme**: Light mode default (next-themes configured)
+- **UI Framework**: Tailwind CSS with custom PRICE branding
+- **Icons**: @iconify/react with Solar icon set
+- **Development Server**: Running on port 3000 (port 3001 as fallback)
 
 #### ⏭️ Deferred/Modified:
 - **SSH Hardening**: Skipped for now (password auth retained, can implement SSH keys later)
@@ -44,13 +52,101 @@ Based on the intranet deployment (UF network only with SSO authentication), the 
 - **APT Proxy**: Puppet manages `/etc/apt/apt.conf.d/01proxy` with broken proxy (puppet.ahc.ufl.edu:3142). Use `-o Acquire::http::Proxy=false` flag for apt commands or contact IT about the proxy configuration.
 - **Node.js Access**: Node is installed via NVM for price-app user. It's available when logged in as price-app but not via `sudo -u price-app` (this is expected and fine).
 
-#### 📋 Next Steps (Phase 3+):
-- [ ] Phase 3: Initialize NestJS backend and Next.js frontend application structure
-- [ ] Phase 4: Implement date conversion utilities for HIPAA compliance
-- [ ] Phase 5: Configure Nginx reverse proxy with SSL and UF Shibboleth integration
-- [ ] Phase 6: Set up REDCap, eLab, SharePoint, XNAT API integrations
-- [ ] Phase 7: Implement audit logging and monitoring
-- [ ] Phase 8: Configure automated backups
+#### 📋 Next Steps:
+- [ ] Configure Nginx reverse proxy with SSL and UF Shibboleth integration
+- [ ] Set up REDCap, eLab, SharePoint, XNAT API integrations
+- [ ] Implement NestJS backend with database connections
+- [ ] Implement audit logging and monitoring
+- [ ] Configure automated backups
+
+---
+
+## Current Deployment (Quick Start)
+
+### Running the Frontend on the VM
+
+```bash
+# SSH into the VM
+ssh price-app@dn-pain-pw01.ahc.ufl.edu
+
+# Navigate to the project
+cd /home/price-app/price-dashboard/frontend
+
+# Install dependencies (if needed)
+npm install
+
+# Start development server
+npm run dev
+
+# The dashboard will be available at:
+# http://10.4.116.117:3000 (or :3001 if 3000 is in use)
+```
+
+### Updating the Frontend
+
+```bash
+# SSH into the VM
+ssh price-app@dn-pain-pw01.ahc.ufl.edu
+
+# Navigate to the project
+cd /home/price-app/price-dashboard
+
+# Pull latest changes
+git pull origin main
+
+# Clear Next.js cache (important!)
+rm -rf frontend/.next
+
+# Install dependencies
+cd frontend && npm install
+
+# Restart the server
+npm run dev
+```
+
+### Current Project Structure on VM
+
+```
+/home/price-app/price-dashboard/
+├── frontend/                      # Next.js 15 frontend
+│   ├── src/
+│   │   └── app/
+│   │       ├── layout.tsx         # Root layout with theme provider
+│   │       ├── (DashboardLayout)/ # Dashboard pages with sidebar
+│   │       │   ├── layout.tsx     # Dashboard layout wrapper
+│   │       │   ├── page.tsx       # Main dashboard (/)
+│   │       │   ├── studies/       # Studies pages
+│   │       │   ├── participants/  # Participants pages
+│   │       │   ├── labs/          # Labs pages
+│   │       │   └── layout/        # Sidebar & header components
+│   │       └── components/        # Shared components
+│   ├── package.json
+│   └── .next/                     # Build cache (delete to force rebuild)
+├── backend/                       # NestJS backend (not yet implemented)
+├── docs/                          # Documentation
+└── README.md
+```
+
+### Important Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `frontend/src/app/layout.tsx` | Theme provider (light mode default) |
+| `frontend/src/app/(DashboardLayout)/layout/sidebar/Sidebaritems.ts` | Sidebar navigation menu |
+| `frontend/src/app/components/shared/CardBox.tsx` | Reusable card component |
+
+### Troubleshooting
+
+**Issue: Dark/black UI**
+- Edit `frontend/src/app/layout.tsx`
+- Ensure ThemeProvider has `defaultTheme='light'` and `enableSystem={false}`
+
+**Issue: "Class extends value undefined" error**
+- Add `"use client"` at the top of any component using @iconify/react or React hooks
+
+**Issue: Changes not appearing after git pull**
+- Clear the cache: `rm -rf frontend/.next`
+- Restart the dev server
 
 ### Network Architecture (Actual)
 

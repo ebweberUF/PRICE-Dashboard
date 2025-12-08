@@ -22,6 +22,7 @@
 12. [Testing](#testing)
 13. [Deployment](#deployment)
 14. [Example Implementation](#example-implementation)
+15. [VM Integration & File Placement](#vm-integration--file-placement)
 
 ---
 
@@ -29,20 +30,20 @@
 
 ### What is a Study Dashboard?
 
-A Study Dashboard is a modular, standalone web application designed for a specific clinical research study. Each dashboard:
+A Study Dashboard is a set of routes within the PRICE Dashboard designed for a specific clinical research study. Each study dashboard:
 
 - Displays study-specific participant data and metrics
 - Integrates with REDCap (and optionally eLab, SharePoint, XNAT)
 - Follows HIPAA Limited Data Set requirements
-- Connects to the central PRICE Dashboard API for authentication and core services
-- Can be developed and deployed independently
+- Uses shared authentication and navigation from the main dashboard
+- Deploys as part of the main PRICE Dashboard codebase
 
 ### Key Principles
 
-1. **Modularity**: Each study dashboard is a separate codebase/workspace
+1. **Modularity**: Each study dashboard is a self-contained route within the main dashboard
 2. **HIPAA Compliance**: Only coded IDs and relative dates - never PHI
 3. **Consistency**: Use shared types and components from the PRICE platform
-4. **Independence**: Study dashboards can be developed/deployed without affecting others
+4. **Simplicity**: All study dashboards share the same codebase and deployment
 
 ---
 
@@ -57,19 +58,21 @@ A Study Dashboard is a modular, standalone web application designed for a specif
                               │
                     ┌─────────▼─────────┐
                     │      Nginx        │  SSL + Shibboleth
-                    │  (Reverse Proxy)  │  Route: /studies/{code}
+                    │  (Reverse Proxy)  │
                     └─────────┬─────────┘
                               │
-          ┌───────────────────┼───────────────────┐
-          │                   │                   │
-    ┌─────▼─────┐       ┌─────▼─────┐       ┌─────▼─────┐
-    │  PRICE    │       │  Study    │       │  Study    │
-    │  Dashboard│       │  CPAIN    │       │  OPIOID   │
-    │  (Main)   │       │  Dashboard│       │  Dashboard│
-    │  :3000    │       │  :3010    │       │  :3011    │
-    └─────┬─────┘       └─────┬─────┘       └─────┬─────┘
-          │                   │                   │
-          └───────────────────┼───────────────────┘
+                    ┌─────────▼─────────┐
+                    │  PRICE Dashboard  │  Next.js Frontend
+                    │      :3000        │
+                    │  ┌─────────────┐  │
+                    │  │ /           │  │  Main Dashboard
+                    │  │ /studies    │  │  Studies List
+                    │  │ /studies/   │  │  Study Dashboards
+                    │  │   cpain     │  │  (embedded routes)
+                    │  │   opioid    │  │
+                    │  │   neuro     │  │
+                    │  └─────────────┘  │
+                    └─────────┬─────────┘
                               │
                     ┌─────────▼─────────┐
                     │   PRICE Backend   │  NestJS API
@@ -107,120 +110,89 @@ A Study Dashboard is a modular, standalone web application designed for a specif
 ### Prerequisites
 
 - Node.js v24.11.1 (via NVM)
-- Access to PRICE Dashboard API
+- Access to PRICE Dashboard codebase
 - REDCap API token for your study
 - Study registered in PRICE Dashboard (get your `studyId`)
 
-### Create New Study Dashboard Workspace
+### Create New Study Dashboard
+
+Study dashboards are created as routes within the main PRICE Dashboard. No separate project setup is needed.
 
 ```bash
-# 1. Create new directory for your study dashboard
-mkdir PRICE-Study-YOURSTUDYCODE
-cd PRICE-Study-YOURSTUDYCODE
+# 1. Navigate to the studies folder in the frontend
+cd frontend/src/app/\(DashboardLayout\)/studies
 
-# 2. Initialize Next.js project
-npx create-next-app@latest . --typescript --tailwind --app --no-src-dir
+# 2. Create the study folder structure (example for CPAIN study)
+mkdir -p cpain/{participants,visits,data-quality}
 
-# 3. Install dependencies
-npm install @tanstack/react-query axios date-fns recharts
+# 3. Create the study pages
+touch cpain/page.tsx
+touch cpain/participants/page.tsx
+touch cpain/visits/page.tsx
+touch cpain/data-quality/page.tsx
+```
 
-# 4. Create environment file
-cat > .env.local << 'EOF'
-# PRICE Dashboard API
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-NEXT_PUBLIC_STUDY_CODE=YOURSTUDYCODE
-NEXT_PUBLIC_STUDY_ID=1
+### Environment Variables
 
-# REDCap (server-side only - never expose to client)
+Study-specific configuration uses the main dashboard's environment. Add study-specific REDCap tokens to the backend `.env`:
+
+```bash
+# In backend/.env
 REDCAP_API_URL=https://redcap.ctsi.ufl.edu/redcap/api/
-REDCAP_API_TOKEN=your_token_here
-EOF
-
-# 5. Create base structure
-mkdir -p lib components/{ui,charts,tables} app/participants
+REDCAP_TOKEN_CPAIN=your_cpain_token_here
+REDCAP_TOKEN_OPIOID=your_opioid_token_here
 ```
-
-### Recommended package.json Scripts
-
-```json
-{
-  "scripts": {
-    "dev": "next dev -p 3010",
-    "build": "next build",
-    "start": "next start -p 3010",
-    "lint": "eslint",
-    "type-check": "tsc --noEmit"
-  }
-}
-```
-
-> **Note**: Each study dashboard should use a unique port (3010, 3011, 3012, etc.)
 
 ---
 
 ## Project Structure
 
-### Recommended Directory Structure
+### Study Dashboard Directory Structure
+
+Study dashboards live within the main PRICE Dashboard codebase:
 
 ```
-PRICE-Study-YOURSTUDYCODE/
-├── app/
-│   ├── layout.tsx              # Root layout with navigation
-│   ├── page.tsx                # Study overview/dashboard
-│   ├── participants/
-│   │   ├── page.tsx            # Participant list
-│   │   └── [subjectId]/
-│   │       └── page.tsx        # Individual participant view
-│   ├── visits/
-│   │   └── page.tsx            # Visit tracking
-│   ├── data-quality/
-│   │   └── page.tsx            # Data completeness
-│   ├── reports/
-│   │   └── page.tsx            # Export and reporting
-│   └── api/                    # API routes (server-side)
-│       ├── participants/
-│       │   └── route.ts        # Fetch from PRICE API
-│       └── sync/
-│           └── route.ts        # REDCap sync endpoint
-│
-├── components/
-│   ├── layout/
-│   │   ├── StudyHeader.tsx     # Study-specific header
-│   │   ├── StudySidebar.tsx    # Navigation sidebar
-│   │   └── index.ts
-│   ├── ui/
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Badge.tsx
-│   │   ├── Table.tsx
-│   │   └── index.ts
-│   ├── charts/
-│   │   ├── EnrollmentChart.tsx
-│   │   ├── CompletenessChart.tsx
-│   │   └── index.ts
-│   └── participants/
-│       ├── ParticipantCard.tsx
-│       ├── ParticipantTable.tsx
-│       ├── VisitTimeline.tsx
-│       └── index.ts
-│
-├── lib/
-│   ├── api.ts                  # API client for PRICE backend
-│   ├── redcap.ts               # REDCap API client (server-side)
-│   ├── date-utils.ts           # Date conversion utilities
-│   ├── types.ts                # Study-specific types
-│   └── config.ts               # Study configuration
-│
-├── public/
-│   └── study-logo.png          # Study-specific branding
-│
-├── .env.local                  # Environment variables
-├── .env.example                # Example env file
-├── next.config.js
-├── tailwind.config.js
-├── tsconfig.json
-├── package.json
-└── README.md                   # Study-specific documentation
+frontend/src/app/(DashboardLayout)/studies/
+├── page.tsx                        # Studies list page
+└── [studyCode]/                    # Dynamic route for each study
+    ├── page.tsx                    # Study overview/dashboard
+    ├── participants/
+    │   ├── page.tsx                # Participant list
+    │   └── [subjectId]/
+    │       └── page.tsx            # Individual participant view
+    ├── visits/
+    │   └── page.tsx                # Visit tracking
+    ├── data-quality/
+    │   └── page.tsx                # Data completeness
+    └── reports/
+        └── page.tsx                # Export and reporting
+```
+
+### Shared Components
+
+Study dashboards use shared components from the main dashboard:
+
+```
+frontend/src/app/components/
+├── shared/
+│   ├── CardBox.tsx                 # Card container component
+│   └── ...
+├── dashboard/
+│   └── ...
+└── studies/                        # Study-specific components (create as needed)
+    ├── StudyStatsCard.tsx
+    ├── ParticipantTable.tsx
+    ├── EnrollmentChart.tsx
+    └── ...
+```
+
+### Shared Libraries
+
+```
+frontend/src/lib/                   # Shared utilities
+├── api.ts                          # API client for PRICE backend
+├── date-utils.ts                   # Date conversion utilities
+└── types.ts                        # Shared TypeScript types
 ```
 
 ---
@@ -2027,25 +1999,23 @@ describe('PHI Detection', () => {
 
 ### Environment Variables
 
-```bash
-# .env.production
-NEXT_PUBLIC_API_URL=https://price.dental.ufl.edu/api
-NEXT_PUBLIC_STUDY_CODE=CPAIN
-NEXT_PUBLIC_STUDY_ID=1
+Study dashboards use the main dashboard's environment configuration. REDCap tokens are stored in the backend:
 
-# Server-side only (never NEXT_PUBLIC_)
+```bash
+# backend/.env.production
 REDCAP_API_URL=https://redcap.ctsi.ufl.edu/redcap/api/
-REDCAP_API_TOKEN=your_production_token
+REDCAP_TOKEN_CPAIN=your_cpain_token
+REDCAP_TOKEN_OPIOID=your_opioid_token
 ```
 
 ### Nginx Configuration
 
-Add to the main PRICE nginx config:
+No separate Nginx configuration is needed for study dashboards. They are served as routes within the main PRICE Dashboard on port 3000:
 
 ```nginx
-# Study Dashboard: CPAIN
-location /studies/cpain {
-    proxy_pass http://127.0.0.1:3010;
+# All traffic goes to the main dashboard
+location / {
+    proxy_pass http://127.0.0.1:3000;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -2054,35 +2024,17 @@ location /studies/cpain {
 }
 ```
 
-### PM2 Configuration
+### Deployment
 
-```javascript
-// ecosystem.config.js
-module.exports = {
-  apps: [
-    {
-      name: 'price-study-cpain',
-      cwd: '/home/price-app/studies/PRICE-Study-CPAIN',
-      script: 'npm',
-      args: 'start',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3010,
-      },
-    },
-  ],
-};
-```
-
-### Deployment Commands
+Study dashboards deploy with the main dashboard. No separate deployment needed:
 
 ```bash
 # On the VM as price-app user
-cd ~/studies/PRICE-Study-CPAIN
+cd /home/price-app/price-dashboard
 git pull origin main
-npm install
-npm run build
-pm2 restart price-study-cpain
+rm -rf frontend/.next
+cd frontend && npm install && npm run build
+pm2 restart price-frontend
 ```
 
 ---
@@ -2167,6 +2119,226 @@ function ChartSkeleton() {
 
 ---
 
+## VM Integration & File Placement
+
+This section covers exactly how to integrate study dashboards with the main PRICE Dashboard and where to place files on the production VM.
+
+### VM Server Details
+
+| Property | Value |
+|----------|-------|
+| Server Hostname | dn-pain-pw01.ahc.ufl.edu |
+| Internal IP | 10.4.116.117 |
+| Public URL | price.dental.ufl.edu |
+| Application User | `price-app` |
+| Project Root | `/home/price-app/price-dashboard` |
+| Node.js Version | v24.11.1 (via NVM) |
+| PostgreSQL Version | v17.7 |
+
+### Integration Approach: Embedded Routes
+
+Study dashboards are integrated directly into the main PRICE Dashboard as routes. This approach:
+- Shares authentication and navigation with the main dashboard
+- Uses the existing Tailwind Admin template design system
+- Simplifies deployment (one codebase to deploy)
+- Provides consistent user experience
+- Runs on a single port (3000) - no multi-port configuration needed
+
+**File placement on VM:**
+```
+/home/price-app/price-dashboard/
+├── frontend/
+│   └── src/
+│       └── app/
+│           └── (DashboardLayout)/
+│               └── studies/
+│                   ├── page.tsx                    # Studies list page
+│                   └── [studyCode]/                # Dynamic route per study
+│                       ├── page.tsx                # Study overview
+│                       ├── participants/
+│                       │   └── page.tsx            # Participant list
+│                       ├── visits/
+│                       │   └── page.tsx            # Visit tracking
+│                       └── data-quality/
+│                           └── page.tsx            # Data completeness
+```
+
+**Creating a new embedded study dashboard:**
+
+```bash
+# 1. SSH into the VM
+ssh price-app@dn-pain-pw01.ahc.ufl.edu
+
+# 2. Navigate to the studies folder
+cd /home/price-app/price-dashboard/frontend/src/app/\(DashboardLayout\)/studies
+
+# 3. Create the study folder structure (example for CPAIN study)
+mkdir -p cpain/{participants,visits,data-quality}
+
+# 4. Create the study pages
+touch cpain/page.tsx
+touch cpain/participants/page.tsx
+touch cpain/visits/page.tsx
+touch cpain/data-quality/page.tsx
+```
+
+**Required "use client" directive:**
+
+All components using React hooks, @iconify/react icons, or other client-side features MUST include the `"use client"` directive at the top of the file:
+
+```tsx
+"use client"
+
+import { Icon } from "@iconify/react"
+// ... rest of component
+```
+
+**Example embedded study page:**
+
+```tsx
+// frontend/src/app/(DashboardLayout)/studies/[studyCode]/page.tsx
+"use client"
+
+import { useParams } from "next/navigation"
+import CardBox from "@/app/components/shared/CardBox"
+import { Icon } from "@iconify/react"
+
+export default function StudyDashboard() {
+  const params = useParams()
+  const studyCode = params.studyCode as string
+
+  return (
+    <div className="space-y-6">
+      {/* Study Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-charcoal dark:text-white">
+            Study: {studyCode.toUpperCase()}
+          </h1>
+          <p className="text-bodytext dark:text-darklink">
+            Study-specific dashboard and metrics
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <CardBox className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Icon icon="solar:users-group-rounded-bold" height={24} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-bodytext dark:text-darklink">Enrolled</p>
+              <p className="text-2xl font-bold text-charcoal dark:text-white">45</p>
+            </div>
+          </div>
+        </CardBox>
+        {/* ... more stat cards */}
+      </div>
+    </div>
+  )
+}
+```
+
+**Adding study to sidebar navigation:**
+
+Edit `/home/price-app/price-dashboard/frontend/src/app/(DashboardLayout)/layout/sidebar/Sidebaritems.ts`:
+
+```typescript
+{
+  heading: 'Research',
+  children: [
+    // ... existing items
+    {
+      name: 'Studies',
+      icon: 'solar:clipboard-list-linear',
+      id: uniqueId(),
+      url: '/studies',
+      children: [
+        {
+          name: 'CPAIN',
+          id: uniqueId(),
+          url: '/studies/cpain',
+        },
+        {
+          name: 'OPIOID',
+          id: uniqueId(),
+          url: '/studies/opioid',
+        },
+      ],
+    },
+  ],
+},
+```
+
+### VM Deployment Commands
+
+```bash
+# SSH into VM
+ssh price-app@dn-pain-pw01.ahc.ufl.edu
+
+# Pull latest changes
+cd /home/price-app/price-dashboard
+git pull origin main
+
+# Clear Next.js cache (important after changes)
+rm -rf frontend/.next
+
+# Install any new dependencies
+cd frontend && npm install
+
+# Restart the frontend
+pm2 restart price-frontend
+# OR if running manually:
+npm run dev
+```
+
+### Theme Configuration
+
+The dashboard uses next-themes for theme management. The theme is configured in `frontend/src/app/layout.tsx`:
+
+```tsx
+<ThemeProvider
+  attribute='class'
+  defaultTheme='light'
+  enableSystem={false}
+  disableTransitionOnChange>
+  {children}
+</ThemeProvider>
+```
+
+### Common Integration Issues
+
+#### Issue: "Class extends value undefined" Error
+
+**Cause**: Missing `"use client"` directive in components using @iconify/react or React hooks.
+
+**Solution**: Add `"use client"` at the top of the file:
+```tsx
+"use client"
+
+import { Icon } from "@iconify/react"
+```
+
+#### Issue: Dark/Black UI on First Load
+
+**Cause**: Theme provider using `enableSystem={true}` which detects dark mode preference.
+
+**Solution**: Set `defaultTheme='light'` and `enableSystem={false}` in ThemeProvider.
+
+#### Issue: Git Changes Not Reflected
+
+**Cause**: Next.js caching old build artifacts.
+
+**Solution**: Clear the cache before restarting:
+```bash
+rm -rf .next
+npm run dev  # or npm run build && npm run start
+```
+
+---
+
 ## Quick Reference
 
 ### File Naming Conventions
@@ -2181,14 +2353,12 @@ function ChartSkeleton() {
 
 ### Port Assignments
 
-| Study | Port |
-|-------|------|
-| Main PRICE Dashboard | 3000 |
-| PRICE API | 3001 |
-| Study: CPAIN | 3010 |
-| Study: OPIOID | 3011 |
-| Study: NEURO | 3012 |
-| (Add more as needed) | 3013+ |
+| Service | Port |
+|---------|------|
+| Main PRICE Dashboard (Frontend) | 3000 |
+| PRICE API (Backend) | 3001 |
+
+All study dashboards run as routes within the main dashboard on port 3000.
 
 ### Key Commands
 
@@ -2202,10 +2372,9 @@ npm run lint                   # Run ESLint
 npm run build                  # Build for production
 npm run start                  # Start production server
 
-# Deployment
-pm2 start ecosystem.config.js  # Start with PM2
-pm2 restart <app-name>         # Restart app
-pm2 logs <app-name>            # View logs
+# Deployment (on VM)
+pm2 restart price-frontend     # Restart frontend
+pm2 logs price-frontend        # View logs
 ```
 
 ---
@@ -2225,9 +2394,9 @@ pm2 logs <app-name>            # View logs
    - Ensure all dates are converted before storage
    - Check for Date objects in serialized JSON
 
-4. **Port already in use**
-   - Each study needs a unique port
-   - Update package.json and nginx config
+4. **Changes not appearing after git pull**
+   - Clear Next.js cache: `rm -rf frontend/.next`
+   - Restart the dev server or rebuild
 
 ---
 
