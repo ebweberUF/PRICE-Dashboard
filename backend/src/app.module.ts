@@ -19,6 +19,11 @@ import {
   AuditLog,
 } from './entities';
 
+// Import modules
+import { UsersModule } from './modules/users';
+import { LabsModule } from './modules/labs';
+import { StudiesModule } from './modules/studies';
+
 @Module({
   imports: [
     // Configuration module
@@ -55,6 +60,11 @@ import {
         logging: configService.get<boolean>('database.logging'),
       }),
     }),
+
+    // Feature modules
+    UsersModule,
+    LabsModule,
+    StudiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
