@@ -13,6 +13,9 @@
   "keywords": ["shared", "types", "utilities"],
   "author": "UF PRICE Center",
   "license": "UNLICENSED",
+  "dependencies": {
+    "date-fns": "^4.1.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2"

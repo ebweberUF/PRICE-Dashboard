@@ -8,7 +8,7 @@
 
 ## Overview
 
-The PRICE Study Dashboard is a HIPAA-compliant web application for managing clinical research data at the University of Florida's PRICE Center. This application uses a **Limited Data Set** approach (coded subject IDs, relative dates, no PHI) to minimize compliance burden while enabling comprehensive research data management.
+The PRICE Dashboard is a HIPAA-compliant web application for managing clinical research data at the University of Florida's PRICE Center. This application uses a **Limited Data Set** approach (coded subject IDs, relative dates, no PHI) to minimize compliance burden while enabling comprehensive research data management.
 
 ## Architecture
 
