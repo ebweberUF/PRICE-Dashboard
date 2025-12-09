@@ -141,6 +141,63 @@ export interface StudyStats {
   withdrawn: number;
 }
 
+// Calendar types
+export interface CalendarEvent {
+  id: number;
+  sharepointEventId: string;
+  title: string;
+  description?: string;
+  location?: string;
+  eventStart: string;
+  eventEnd: string;
+  allDay: boolean;
+  studyId?: number;
+  studyCode?: string;
+  study?: Study;
+  eventType?: string;
+  category?: string;
+  isRecurring: boolean;
+  organizerName?: string;
+  organizerEmail?: string;
+  lastSyncedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarStats {
+  totalEvents: number;
+  byStudy: Array<{
+    studyId: number | null;
+    studyCode: string | null;
+    studyName: string | null;
+    eventCount: number;
+  }>;
+  byMonth: Array<{
+    year: number;
+    month: number;
+    monthName: string;
+    eventCount: number;
+  }>;
+  byEventType: Array<{
+    eventType: string;
+    eventCount: number;
+  }>;
+  dateRange: {
+    earliest: string | null;
+    latest: string | null;
+  };
+}
+
+export interface CalendarQueryParams {
+  studyCode?: string;
+  studyId?: number;
+  startDate?: string;
+  endDate?: string;
+  eventType?: string;
+  limit?: number;
+  offset?: number;
+}
+
 // API functions
 export const api = {
   // Users
@@ -170,6 +227,32 @@ export const api = {
     update: (id: number, data: UpdateStudyDto) =>
       fetchApi<Study>(`/studies/${id}`, { method: 'PUT', body: data }),
     delete: (id: number) => fetchApi<void>(`/studies/${id}`, { method: 'DELETE' }),
+  },
+
+  // Calendar
+  calendar: {
+    getEvents: (params?: CalendarQueryParams) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            searchParams.append(key, String(value));
+          }
+        });
+      }
+      const query = searchParams.toString();
+      return fetchApi<CalendarEvent[]>(`/calendar/events${query ? `?${query}` : ''}`);
+    },
+    getEventById: (id: number) => fetchApi<CalendarEvent>(`/calendar/events/${id}`),
+    getUpcoming: (limit?: number) =>
+      fetchApi<CalendarEvent[]>(`/calendar/upcoming${limit ? `?limit=${limit}` : ''}`),
+    getStats: (year?: number, studyId?: number) => {
+      const params = new URLSearchParams();
+      if (year) params.append('year', String(year));
+      if (studyId) params.append('studyId', String(studyId));
+      const query = params.toString();
+      return fetchApi<CalendarStats>(`/calendar/stats${query ? `?${query}` : ''}`);
+    },
   },
 };
 

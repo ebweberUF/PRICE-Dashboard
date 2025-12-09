@@ -17,12 +17,14 @@ import {
   StudyUserAccess,
   StudyDataSource,
   AuditLog,
+  CalendarEvent,
 } from './entities';
 
 // Import modules
 import { UsersModule } from './modules/users';
 import { LabsModule } from './modules/labs';
 import { StudiesModule } from './modules/studies';
+import { CalendarModule } from './modules/calendar';
 
 @Module({
   imports: [
@@ -55,6 +57,7 @@ import { StudiesModule } from './modules/studies';
           StudyUserAccess,
           StudyDataSource,
           AuditLog,
+          CalendarEvent,
         ],
         synchronize: configService.get<boolean>('database.synchronize'),
         logging: configService.get<boolean>('database.logging'),
@@ -65,6 +68,7 @@ import { StudiesModule } from './modules/studies';
     UsersModule,
     LabsModule,
     StudiesModule,
+    CalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],

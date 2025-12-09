@@ -17,3 +17,6 @@ export * from './study-data-source.entity';
 
 // Audit entities
 export * from './audit-log.entity';
+
+// Calendar entities
+export * from './calendar-event.entity';
