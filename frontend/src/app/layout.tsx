@@ -1,14 +1,10 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { DM_Sans } from 'next/font/google'
 import './css/globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-dm-sans',
-})
+// Using system fonts for intranet deployment (no Google Fonts access)
+const systemFontClass = 'font-sans'
 
 export const metadata: Metadata = {
   title: 'PRICE Dashboard - UF College of Dentistry',
@@ -25,7 +21,7 @@ export default function RootLayout({
       <head>
         <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
       </head>
-      <body className={`${dmSans.className}`}>
+      <body className={systemFontClass}>
         <ThemeProvider
           attribute='class'
           defaultTheme='light'
