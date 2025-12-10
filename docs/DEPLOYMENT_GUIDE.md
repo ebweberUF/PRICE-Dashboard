@@ -30,11 +30,21 @@ Based on the intranet deployment (UF network only with SSO authentication), the 
 
 #### ✅ Implemented (December 2025):
 - **Frontend**: Next.js 15 with Tailwind Admin template deployed
+- **Backend**: NestJS 11 with TypeORM and PostgreSQL
 - **Project Location**: `/home/price-app/price-dashboard`
 - **Theme**: Light mode default (next-themes configured)
 - **UI Framework**: Tailwind CSS with custom PRICE branding
 - **Icons**: @iconify/react with Solar icon set
-- **Development Server**: Running on port 3000 (port 3001 as fallback)
+- **Process Manager**: PM2 managing both frontend (port 3000) and backend (port 3001)
+- **Calendar Sync**: Power Automate integration for SharePoint calendar sync
+- **GALLOP Study Dashboard**: First study dashboard implemented (equine pain research)
+  - Dashboard overview with enrollment stats
+  - Participants list with search/filter
+  - Visit tracking page
+  - Data quality monitoring page
+  - IACUC #: IACUC202400000711
+  - Enrollment target: 40
+- **SharePoint App Registration**: Dental GALLOP Central Monitoring (Azure AD)
 
 #### ⏭️ Deferred/Modified:
 - **SSH Hardening**: Skipped for now (password auth retained, can implement SSH keys later)
@@ -54,55 +64,142 @@ Based on the intranet deployment (UF network only with SSO authentication), the 
 
 #### 📋 Next Steps:
 - [ ] Configure Nginx reverse proxy with SSL and UF Shibboleth integration
-- [ ] Set up REDCap, eLab, SharePoint, XNAT API integrations
-- [ ] Implement NestJS backend with database connections
+- [ ] Set up REDCap API integration for GALLOP study
+- [ ] Complete SharePoint integration for GALLOP (client secret configured)
+- [ ] Set up eLab, XNAT API integrations (if needed for GALLOP)
+- [x] Implement NestJS backend with database connections
+- [x] Create GALLOP study dashboard pages
+- [ ] Complete SharePoint Calendar sync via Power Automate (see POWER_AUTOMATE_SETUP.md)
+- [ ] Set up database user password (price_app)
 - [ ] Implement audit logging and monitoring
 - [ ] Configure automated backups
+- [ ] Customize GALLOP visit schedule and REDCap field mappings
 
 ---
 
 ## Current Deployment (Quick Start)
 
-### Running the Frontend on the VM
+### SSH Access
 
 ```bash
-# SSH into the VM
-ssh price-app@dn-pain-pw01.ahc.ufl.edu
+# SSH into the VM as your user
+ssh ebweber@price.dental.ufl.edu
 
-# Navigate to the project
-cd /home/price-app/price-dashboard/frontend
-
-# Install dependencies (if needed)
-npm install
-
-# Start development server
-npm run dev
-
-# The dashboard will be available at:
-# http://10.4.116.117:3000 (or :3001 if 3000 is in use)
+# Switch to the application user
+sudo su - price-app
 ```
 
-### Updating the Frontend
+### Running with PM2 (Production)
 
 ```bash
-# SSH into the VM
-ssh price-app@dn-pain-pw01.ahc.ufl.edu
+# Check running processes
+pm2 list
+
+# View logs
+pm2 logs price-backend --lines 50
+pm2 logs price-frontend --lines 50
+
+# Restart services
+pm2 restart price-backend
+pm2 restart price-frontend
+
+# Start backend if not running
+cd ~/price-dashboard/backend
+npm run build
+pm2 start npm --name "price-backend" -- run start:prod
+
+# Start frontend if not running
+cd ~/price-dashboard/frontend
+npm run build
+pm2 start npm --name "price-frontend" -- run start
+```
+
+### Updating the Application
+
+```bash
+# SSH into the VM and switch to price-app
+ssh ebweber@price.dental.ufl.edu
+sudo su - price-app
 
 # Navigate to the project
-cd /home/price-app/price-dashboard
+cd ~/price-dashboard
 
 # Pull latest changes
 git pull origin main
 
-# Clear Next.js cache (important!)
-rm -rf frontend/.next
-
 # Install dependencies
-cd frontend && npm install
+npm install
 
-# Restart the server
-npm run dev
+# Build and restart backend
+cd backend
+npm run build
+pm2 restart price-backend
+
+# Build and restart frontend
+cd ../frontend
+npm run build
+pm2 restart price-frontend
+
+# Verify both are running
+pm2 list
 ```
+
+### Backend Environment (.env)
+
+The backend requires a `.env` file at `~/price-dashboard/backend/.env`:
+
+```bash
+# Environment
+NODE_ENV=production
+
+# Server
+PORT=3001
+
+# Database (PostgreSQL)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=price_app
+DB_PASSWORD=<your-db-password>
+DB_DATABASE=price_production
+DB_SSL=false
+
+# Session (generate with: openssl rand -base64 32)
+SESSION_SECRET=<generate-random-string>
+
+# Shibboleth SSO
+SHIBBOLETH_ENABLED=false
+
+# Calendar Sync (Power Automate)
+# Generate with: openssl rand -base64 32
+CALENDAR_SYNC_API_KEY=<your-api-key>
+
+# ========================================
+# Study-Specific Integrations
+# ========================================
+
+# REDCap API
+REDCAP_API_URL=https://redcap.ctsi.ufl.edu/redcap/api/
+REDCAP_TOKEN_GALLOP=<gallop-redcap-token>
+
+# SharePoint - GALLOP Study (Dental GALLOP Central Monitoring App)
+SHAREPOINT_TENANT_ID=0d4da0f8-4a31-4d76-ace6-0a62331e1b84
+SHAREPOINT_CLIENT_ID=e3303496-a25d-490d-9661-8cd5cc46c15b
+SHAREPOINT_CLIENT_SECRET=<sharepoint-client-secret>
+```
+
+**Generating secrets:**
+```bash
+# Generate SESSION_SECRET
+openssl rand -base64 32
+
+# Generate CALENDAR_SYNC_API_KEY
+openssl rand -base64 32
+```
+
+### URLs
+
+- **Frontend**: http://10.4.116.177:3000 (or https://price.dental.ufl.edu when Nginx configured)
+- **Backend API**: http://10.4.116.177:3001/api
 
 ### Current Project Structure on VM
 
@@ -116,13 +213,23 @@ npm run dev
 │   │       │   ├── layout.tsx     # Dashboard layout wrapper
 │   │       │   ├── page.tsx       # Main dashboard (/)
 │   │       │   ├── studies/       # Studies pages
+│   │       │   │   ├── page.tsx   # Studies list
+│   │       │   │   └── gallop/    # GALLOP Study Dashboard
+│   │       │   │       ├── page.tsx           # Dashboard overview
+│   │       │   │       ├── participants/
+│   │       │   │       │   └── page.tsx       # Participant list
+│   │       │   │       ├── visits/
+│   │       │   │       │   └── page.tsx       # Visit tracking
+│   │       │   │       └── data-quality/
+│   │       │   │           └── page.tsx       # Data completeness
 │   │       │   ├── participants/  # Participants pages
 │   │       │   ├── labs/          # Labs pages
 │   │       │   └── layout/        # Sidebar & header components
 │   │       └── components/        # Shared components
 │   ├── package.json
 │   └── .next/                     # Build cache (delete to force rebuild)
-├── backend/                       # NestJS backend (not yet implemented)
+├── backend/                       # NestJS backend
+│   └── .env                       # Environment variables (secrets)
 ├── docs/                          # Documentation
 └── README.md
 ```

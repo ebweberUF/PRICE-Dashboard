@@ -57,6 +57,18 @@ const SidebarContent: MenuItem[] = [
         icon: 'solar:clipboard-list-linear',
         id: uniqueId(),
         url: '/studies',
+        children: [
+          {
+            name: 'All Studies',
+            id: uniqueId(),
+            url: '/studies',
+          },
+          {
+            name: 'GALLOP',
+            id: uniqueId(),
+            url: '/studies/gallop',
+          },
+        ],
       },
       {
         name: 'Participants',

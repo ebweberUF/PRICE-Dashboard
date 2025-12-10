@@ -2409,6 +2409,59 @@ pm2 logs price-frontend        # View logs
 
 ---
 
-**Document Version:** 1.0
+## Study Implementations
+
+### GALLOP Study (Equine)
+
+**Created:** December 2024
+
+**Study Details:**
+- **Study Code:** GALLOP
+- **Type:** Equine pain research study (horse study)
+- **IACUC #:** IACUC202400000711
+- **Enrollment Target:** 40
+
+**Files Created:**
+```
+frontend/src/app/(DashboardLayout)/studies/gallop/
+├── page.tsx                 # Main dashboard with stats, quick links
+├── participants/
+│   └── page.tsx             # Participant list with search/filter
+├── visits/
+│   └── page.tsx             # Visit tracking with schedule reference
+└── data-quality/
+    └── page.tsx             # Data completeness monitoring
+```
+
+**Sidebar Navigation:** Added under Studies → GALLOP in `Sidebaritems.ts`
+
+**Environment Variables (backend/.env):**
+```bash
+# GALLOP Study Integration
+REDCAP_API_URL=https://redcap.ctsi.ufl.edu/redcap/api/
+REDCAP_TOKEN_GALLOP=<token>
+
+# SharePoint (Dental GALLOP Central Monitoring App)
+SHAREPOINT_TENANT_ID=0d4da0f8-4a31-4d76-ace6-0a62331e1b84
+SHAREPOINT_CLIENT_ID=e3303496-a25d-490d-9661-8cd5cc46c15b
+SHAREPOINT_CLIENT_SECRET=<secret>
+```
+
+**Azure App Registration:**
+- **App Name:** Dental GALLOP Central Monitoring
+- **App ID:** e3303496-a25d-490d-9661-8cd5cc46c15b
+- **Tenant ID:** 0d4da0f8-4a31-4d76-ace6-0a62331e1b84
+
+**Next Steps:**
+- [ ] Add REDCap API token
+- [ ] Configure SharePoint client secret
+- [ ] Customize visit schedule for GALLOP protocol
+- [ ] Customize instruments in data-quality page for GALLOP REDCap forms
+- [ ] Set up eLab integration (if applicable)
+
+---
+
+**Document Version:** 1.1
 **Created:** December 2025
+**Last Updated:** December 2024
 **Author:** PRICE Development Team
