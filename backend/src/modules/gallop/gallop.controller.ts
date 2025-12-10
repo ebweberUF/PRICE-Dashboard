@@ -1,7 +1,7 @@
 import { Controller, Get, Logger } from '@nestjs/common';
 import { GallopService } from './gallop.service';
 
-@Controller('api/studies/gallop')
+@Controller('studies/gallop')
 export class GallopController {
   private readonly logger = new Logger(GallopController.name);
 
