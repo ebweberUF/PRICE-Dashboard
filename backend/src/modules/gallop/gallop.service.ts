@@ -47,7 +47,7 @@ export class GallopService {
    */
   async getListSchema(): Promise<any[]> {
     await this.initializeSharePoint();
-    return this.sharePointService.getListColumns(this.siteId, this.listId);
+    return this.sharePointService.getListColumns(this.siteId!, this.listId!);
   }
 
   /**
@@ -56,7 +56,7 @@ export class GallopService {
   async getVisits(): Promise<GallopVisit[]> {
     await this.initializeSharePoint();
 
-    const items = await this.sharePointService.getListItems(this.siteId, this.listId);
+    const items = await this.sharePointService.getListItems(this.siteId!, this.listId!);
 
     // Map SharePoint list items to our visit structure
     // Note: Field names may need adjustment based on actual SharePoint list schema

@@ -24,9 +24,9 @@ export class SharePointService {
   private readonly clientSecret: string;
 
   constructor(private configService: ConfigService) {
-    this.tenantId = this.configService.get<string>('SHAREPOINT_TENANT_ID');
-    this.clientId = this.configService.get<string>('SHAREPOINT_CLIENT_ID');
-    this.clientSecret = this.configService.get<string>('SHAREPOINT_CLIENT_SECRET');
+    this.tenantId = this.configService.get<string>('SHAREPOINT_TENANT_ID') || '';
+    this.clientId = this.configService.get<string>('SHAREPOINT_CLIENT_ID') || '';
+    this.clientSecret = this.configService.get<string>('SHAREPOINT_CLIENT_SECRET') || '';
 
     this.client = axios.create({
       timeout: 30000,
