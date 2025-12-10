@@ -25,6 +25,7 @@ import { UsersModule } from './modules/users';
 import { LabsModule } from './modules/labs';
 import { StudiesModule } from './modules/studies';
 import { CalendarModule } from './modules/calendar';
+import { GallopModule } from './modules/gallop';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { CalendarModule } from './modules/calendar';
     LabsModule,
     StudiesModule,
     CalendarModule,
+    GallopModule,
   ],
   controllers: [AppController],
   providers: [AppService],
